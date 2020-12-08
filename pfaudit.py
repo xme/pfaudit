@@ -220,7 +220,7 @@ def main(argv):
         log("Cannot load the previous configuration")
         data_dict = data_dict_new
     else:
-        data_dict = d
+        data_dict = xmltodict.parse(d)
 
     hash_object = hashlib.sha256(str(data_dict).encode())
     sha256_hash = hash_object.hexdigest()
