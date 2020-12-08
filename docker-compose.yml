@@ -2,6 +2,7 @@ version: "3"
 
 services:
   pfaudit:
+    build: .
     container_name: pfaudit
     image: pfaudit/pfaudit:latest
     hostname: pfaudit
