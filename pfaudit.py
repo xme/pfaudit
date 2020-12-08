@@ -98,25 +98,28 @@ def log(m):
 def list_to_dict(l):
     return dict(zip(map(str, range(len(l))), l))
 
-def compare_dicts(d1, d2, ctx="root"):
+def compare_dicts(d1, d2, ctx="/"):
 
     ''' Compare two ordered dicts for changes (new & old config)
     '''
 
     global changes_list
+
     now = datetime.datetime.now().isoformat()
     log("Changes in %s" % ctx)
     for k in d1:
         if k not in d2:
             log("Key '%s' removed from config" % k)
             d = deepcopy(d1)
-            d['action'] = "deleted"
+            d['path'] = ctx
+            d['action'] = "updated"
             d['timestamp'] = now
             changes_list.append(d)
     for k in d2:
         if k not in d1:
             log("Key '%s' added to config" % k)
             d = deepcopy(d2)
+            d['path'] = ctx
             d['action'] = "added"
             d['timestamp'] = now
             changes_list.append(d)
@@ -125,6 +128,7 @@ def compare_dicts(d1, d2, ctx="root"):
             if type(d2[k]) not in (dict, list, collections.OrderedDict):
                 log("Key '%s' changed to '%s'" % (k,str(d2[k])))
                 d = deepcopy(d2)
+                d['path'] = ctx
                 d['action'] = "updated"
                 d['timestamp'] = now
                 changes_list.append(d)
@@ -132,21 +136,23 @@ def compare_dicts(d1, d2, ctx="root"):
                 if type(d1[k]) != type(d2[k]):
                     log("Key '%s' changed to '%s':" % (k,str(d2[k])))
                     d = deepcopy(d2)
+                    d['path'] = ctx
                     d['action'] = "updated"
                     d['timestamp'] = now
                     changes_list.append(d)
                     continue
                 else:
                     if type(d2[k]) == dict or type(d2[k]) == collections.OrderedDict:
-                        compare_dicts(d1[k], d2[k], k)
+                        compare_dicts(d1[k], d2[k], ctx + k + "/")
                         continue
                     elif type(d2[k]) == list:
-                        compare_dicts(list_to_dict(d1[k]), list_to_dict(d2[k]), k)
+                        compare_dicts(list_to_dict(d1[k]), list_to_dict(d2[k]), ctx + k + "/")
     return
 
 def main(argv):
 
     global verbose_mode
+    global changes_list
 
     parser = OptionParser(usage="usage: %prog [options]", version="%prog 1.0")
     parser.add_option('-u', '--user', dest='ssh_user', type='string', \
@@ -230,16 +236,21 @@ def main(argv):
     if xor(options.ssh_host + ".conf", data, hostname) == True:
         log("Comparing configurations: Old SHA256: %s, New SHA256: %s" % (sha256_hash, sha256_hash_new))
         if sha256_hash != sha256_hash_new:
-            dict = data_dict['pfsense'];
-            dict_new = data_dict_new['pfsense']
+            xml_dict = data_dict;
+            xml_dict_new = data_dict_new
 
-            compare_dicts(dict, dict_new)
+            compare_dicts(xml_dict, xml_dict_new)
 
             if options.json_output:
                 try:
                     log("Dumping JSON events to %s" % options.log_file if options.log_file else "Dumping JSON events to stdout")
                     fh = open(options.log_file, 'a') if options.log_file else sys.stdout
-                    for l in changes_list:
+                    # Dedup changes
+                    new_list = []
+                    for i in changes_list:
+                        if i not in new_list:
+                            new_list.append(i)
+                    for l in new_list:
                         fh.write(json.dumps(l) + "\n")
                 except:
                     print("Cannot dump JSON data")
