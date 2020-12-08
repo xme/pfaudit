@@ -78,7 +78,7 @@ def unxor(f, k):
             data = xml_file.read()
     except IOError as e:
         print(e)
-        return(b'')
+        return(None)
     data = base64.b64decode(data)
     key = k.encode()
     l = len(key)
@@ -214,11 +214,13 @@ def main(argv):
 
     hostname = data_dict_new['pfsense']['system']['hostname'];
     log("Firewall hostname: %s" % hostname)
-    data_dict = xmltodict.parse(unxor(options.ssh_host + ".conf", hostname))
-    if data_dict == None:
+    d = unxor(options.ssh_host + ".conf", hostname)
+    if d == None:
         # Cannot read old config, 1st execution?
         log("Cannot load the previous configuration")
         data_dict = data_dict_new
+    else:
+        data_dict = d
 
     hash_object = hashlib.sha256(str(data_dict).encode())
     sha256_hash = hash_object.hexdigest()
