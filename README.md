@@ -14,18 +14,26 @@ A new static lease has been added to the DHCP server:
     Firewall hostname: pfsense
     Writing encrypted configuration to pfsense.lan.conf
     Comparing configurations: Old SHA256: 982b1a48d479892acc407372e46be2bd4d19a2eb967967ede707611f7e4dd7ef, New SHA256: 89ec148591d26bb12db4753acf4a711ad08620c40421ef1a2ed2ff77c6ef5f41
-    Changes in root
-    Changes in dhcpd
-    Changes in lan
-    Changes in staticmap
-    Changes in 0
+    Changes in /
+    Changes in /pfsense
+    Changes in /pfsense/dhcpd
+    Changes in /pfsense/dhcpd/lan
+    Changes in /pfsense/dhcpd/lan/staticmap
+    Changes in /pfsense/dhcpd/lan/staticmap/0
     Key 'mac' changed to '58:ef:68:7a:7b:7c'
     Key 'cid' changed to 'Test pfaudit.py'
     Key 'ipaddr' changed to '192.168.254.34'
     Key 'hostname' changed to 'None'
     Key 'descr' changed to 'None'
-    Changes in revision
+    Changes in /pfsense/revision
     Key 'time' changed to '1607432545'
+
+Here is an example of added rule, output in JSON:
+
+    # /pfaudit.py -H pf0.home.rootshell.be -u root -k /data/id_rsa -j
+    {"id": null, "tracker": "1607432292", "type": "pass", "interface": "lan", "ipprotocol": "inet", "tag": null, "tagged": null, "max": null, "max-src-nodes": null, "max-src-conn": null, "max-src-states": null, "statetimeout": null, "statetype": "keep state", "os": null, "protocol": "udp", "source": {"address": "192.168.254.231"}, "destination": {"address": "8.8.8.8", "port": "53"}, "log": null, "descr": "Test pfaudit.py", "created": {"time": "1607432292", "username": "admin@192.168.254.212"}, "updated": {"time": "1607433473", "username": "admin@192.168.254.212"}, "path": "/pfsense/filter/rule/140/", "action": "updated", "timestamp": "2020-12-08T14:09:27.432318"}
+    {"time": "1607433473", "username": "admin@192.168.254.212", "path": "/pfsense/filter/rule/140/updated/", "action": "updated", "timestamp": "2020-12-08T14:09:27.432407"}
+    {"time": "1607433473", "description": "admin@192.168.254.212: Firewall: Rules - saved/edited a firewall rule.", "username": "admin@192.168.254.212", "path": "/pfsense/revision/", "action": "updated", "timestamp": "2020-12-08T14:09:27.432690"}
 
 # Usage
     # /pfaudit.py -h
