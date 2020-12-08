@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  pfaudit:
+    container_name: pfaudit
+    image: pfaudit/pfaudit:latest
+    hostname: pfaudit
+    restart: unless-stopped
+    environment:
+      TZ: 'Europe/Brussels'
+      PFAUDIT_HOST=my.firewall.org
+      PFAUDIT_USER=root
+      PFAUDIT_SSHKEY=/data/id_rsa
+      PFAUDIT_LOGFILE=/data/firewall.json
+    volumes:
+      - '/etc/localtime:/etc/localtime:ro'
+      - '/data/pfaudit:/data'
