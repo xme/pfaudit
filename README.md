@@ -28,7 +28,7 @@ A new static lease has been added to the DHCP server:
     Changes in /pfsense/revision
     Key 'time' changed to '1607432545'
 
-Here is an example of added rule, output in JSON:
+Here is an example of an updated rule, output in JSON:
 
     # /pfaudit.py -H pf0.home.rootshell.be -u root -k /data/id_rsa -j
     {"id": null, "tracker": "1607432292", "type": "pass", "interface": "lan", "ipprotocol": "inet", "tag": null, "tagged": null, "max": null, "max-src-nodes": null, "max-src-conn": null, "max-src-states": null, "statetimeout": null, "statetype": "keep state", "os": null, "protocol": "udp", "source": {"address": "192.168.254.231"}, "destination": {"address": "8.8.8.8", "port": "53"}, "log": null, "descr": "Test pfaudit.py", "created": {"time": "1607432292", "username": "admin@192.168.254.212"}, "updated": {"time": "1607433473", "username": "admin@192.168.254.212"}, "path": "/pfsense/filter/rule/140/", "action": "updated", "timestamp": "2020-12-08T14:09:27.432318"}
@@ -55,3 +55,12 @@ Here is an example of added rule, output in JSON:
                               Local log file (default: stdout)
         -v, --verbose         Verbose output
   
+The best way to use the script is to run it at regular interval from a cron. It fetches the pfSense configuration via SCP (/cf/conf/config.xml). It will compare the received config with the previous one and display the detected changes.
+
+# Setup
+
+## pfSense Configuration
+Enable root access on the firewall. Enable only SSH key authentication, not password). Generate a new SSH key pair and add the public key to /root/.ssh/authorized_keys.
+
+## pfaudit.py Configuration
+I'm running the script in a small Docker container. Edit the docker-compose.yml to change the environment variables and build the container.
