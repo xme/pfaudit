@@ -26,6 +26,7 @@ from scp import SCPClient
 from copy import deepcopy
 
 verbose_mode = False
+json_output = False
 changes_list = []
 
 def load_ssh_key(f, p = None):
@@ -49,7 +50,7 @@ def load_ssh_key(f, p = None):
 def xor(f, d, k):
 
     ''' XOR/Base64 a config file with the provided key
-        and dump it on the disk
+        and save it on disk
     '''
 
     data = d.encode()
@@ -63,8 +64,8 @@ def xor(f, d, k):
         f.close()
     except IOError as e:
         print(e)
-        return(False)
-    return(True)
+        return False
+    return True
 
 def unxor(f, k):
 
@@ -78,13 +79,13 @@ def unxor(f, k):
             data = xml_file.read()
     except IOError as e:
         print(e)
-        return(None)
+        return None
     data = base64.b64decode(data)
     key = k.encode()
     l = len(key)
     data = bytes((data[i] ^ key[i % l]) for i in range(0,len(data)))
     xml_file.close()
-    return(data)
+    return data
 
 def log(m):
 
@@ -96,16 +97,11 @@ def log(m):
         sys.stderr.write(m + "\n")
 
 def list_to_dict(l):
-    return dict(zip(map(str, range(len(l))), l))
 
-def extract_from_path(d, p):
-    elements = p.split("/")
-    elements.pop(0)
-    x = {}
-    elements.pop(0)
-    for e in elements:
-        print(e)
-    print(d['pfsense']['filter']['rule'][140])
+    ''' Conver a Python list into a dict
+    '''
+
+    return dict(zip(map(str, range(len(l))), l))
 
 def compare_dicts(d1, d2, ctx="/"):
 
@@ -160,9 +156,11 @@ def compare_dicts(d1, d2, ctx="/"):
 
 def process_firewall(host, user, key, passphrase):
 
-    ''' Process a firewall configuration
+    ''' Search for changes in a firewall configuration
     '''
     
+    global json_output
+
     log("Connecting to ssh://%s@%s" % (user, host))
     try:
         ssh = paramiko.SSHClient()
@@ -171,7 +169,7 @@ def process_firewall(host, user, key, passphrase):
         ssh.connect(host, username=user, pkey=load_ssh_key(key, passphrase))
     except:
         print("Cannot connect to %s@%s." % (user, host))
-        return(1)
+        return 1 
         
     temp_file = tempfile.mktemp()
     log("Dumping configuration to %s" % temp_file)
@@ -181,7 +179,7 @@ def process_firewall(host, user, key, passphrase):
     except:
         print("Cannot download configuration XML file.")
         ssh.close()
-        return(1)
+        return 1
     ssh.close()
 
     log("Processing %s" % temp_file)
@@ -194,7 +192,7 @@ def process_firewall(host, user, key, passphrase):
 
     hostname = data_dict_new['pfsense']['system']['hostname'];
     log("Firewall hostname: %s" % hostname)
-    d = unxor(options.ssh_host + ".conf", hostname)
+    d = unxor(host + ".conf", hostname)
     if d == None:
         # Cannot read old config, 1st execution?
         log("Cannot load the previous configuration")
@@ -215,7 +213,7 @@ def process_firewall(host, user, key, passphrase):
 
             compare_dicts(xml_dict, xml_dict_new)
 
-            if options.json_output:
+            if json_output:
                 try:
                     log("Dumping JSON events to %s" % options.log_file if options.log_file else "Dumping JSON events to stdout")
                     fh = open(options.log_file, 'a') if options.log_file else sys.stdout
@@ -242,11 +240,12 @@ def process_firewall(host, user, key, passphrase):
         rc = 1
 
     os.unlink(temp_file)
-    return(rc)
+    return rc
 
 def main(argv):
 
     global verbose_mode
+    global json_output
     global changes_list
 
     parser = OptionParser(usage="usage: %prog [options]", version="%prog 1.0")
@@ -268,6 +267,9 @@ def main(argv):
 
     if options.verbose:
         verbose_mode = True
+
+    if options.json_output:
+        json_output = True
 
     if not options.ssh_host:
         print("No pfSense host provided.")
