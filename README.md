@@ -59,6 +59,12 @@ Here is an example of an updated rule, output in JSON:
   
 The best way to use the script is to run it at regular interval from a cron. It fetches the pfSense configuration via SCP (/cf/conf/config.xml). It will compare the received config with the previous one and display the detected changes.
 
+Authentication *must* be performed via a SSH key (and an optional passphrase). 
+
+# JSON Output
+It is possible to generate a JSON ouput of the detected changes. The goal is to index them into a third-party tool like a SIEM.
+Use the '-j' flag combined with '-l' (events are dumped to stdout by default)
+
 # Setup
 
 ## pfSense Configuration
