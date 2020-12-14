@@ -1,1 +1,1 @@
-
+- Convert command line argument into a configuration file (yml?)
