@@ -27,6 +27,7 @@ from copy import deepcopy
 
 verbose_mode = False
 json_output = False
+log_file = None
 changes_list = []
 
 def load_ssh_key(f, p = None):
@@ -160,6 +161,7 @@ def process_firewall(host, user, key, passphrase):
     '''
     
     global json_output
+    global log_file
 
     log("Connecting to ssh://%s@%s" % (user, host))
     try:
@@ -215,8 +217,8 @@ def process_firewall(host, user, key, passphrase):
 
             if json_output:
                 try:
-                    log("Dumping JSON events to %s" % options.log_file if options.log_file else "Dumping JSON events to stdout")
-                    fh = open(options.log_file, 'a') if options.log_file else sys.stdout
+                    log("Dumping JSON events to %s" % log_file if log_file else "Dumping JSON events to stdout")
+                    fh = open(log_file, 'a') if log_file else sys.stdout
                     # Dedup changes
                     new_list = []
                     for i in changes_list:
@@ -247,6 +249,7 @@ def main(argv):
     global verbose_mode
     global json_output
     global changes_list
+    global log_file
 
     parser = OptionParser(usage="usage: %prog [options]", version="%prog 1.0")
     parser.add_option('-u', '--user', dest='ssh_user', type='string', \
@@ -270,6 +273,9 @@ def main(argv):
 
     if options.json_output:
         json_output = True
+
+    if options.log_file:
+        log_file = options.log_file
 
     if not options.ssh_host:
         print("No pfSense host provided.")
