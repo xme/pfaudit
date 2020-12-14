@@ -72,3 +72,8 @@ Enable root access on the firewall. Enable only SSH key authentication, not pass
 
 ## pfaudit.py Configuration
 I'm running the script in a small Docker container. Edit the docker-compose.yml to change the environment variables and build the container.
+
+# Security
+Firewall configuration are dropped on disk to be able to detect changes across multiple saves. The on-disk configuration is XOR'ed with the name of the firewall. The XOR key is not the FQDN name passed as argument but the real name of the firewall, extracted at runtime from the confguration. 
+Note: If you rename a firewall, you will need to delete the saved configuration and restart with a fresh one.
+
