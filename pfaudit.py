@@ -98,6 +98,15 @@ def log(m):
 def list_to_dict(l):
     return dict(zip(map(str, range(len(l))), l))
 
+def extract_from_path(d, p):
+    elements = p.split("/")
+    elements.pop(0)
+    x = {}
+    elements.pop(0)
+    for e in elements:
+        print(e)
+    print(d['pfsense']['filter']['rule'][140])
+
 def compare_dicts(d1, d2, ctx="/"):
 
     ''' Compare two ordered dicts for changes (new & old config)
@@ -149,55 +158,20 @@ def compare_dicts(d1, d2, ctx="/"):
                         compare_dicts(list_to_dict(d1[k]), list_to_dict(d2[k]), ctx + k + "/")
     return
 
-def main(argv):
+def process_firewall(host, user, key, passphrase):
 
-    global verbose_mode
-    global changes_list
-
-    parser = OptionParser(usage="usage: %prog [options]", version="%prog 1.0")
-    parser.add_option('-u', '--user', dest='ssh_user', type='string', \
-    		help='SSH user')
-    parser.add_option('-H', '--host', dest='ssh_host', type='string', \
-    		help='Firewall FQDN or IP address')
-    parser.add_option('-k', '--key', dest='key_file', type='string', \
-    		help='SSH RSA private key')
-    parser.add_option('-p', '--passphrase', dest='key_passphrase', type='string', \
-    		help='SSH key passphrase')
-    parser.add_option('-j', '--json', action='store_true', dest='json_output', \
-			help='Generate JSON logfile')
-    parser.add_option('-l', '--log', dest='log_file', type='string', \
-            help='Local log file (default: stdout)')
-    parser.add_option('-v', '--verbose', action='store_true', dest='verbose', \
-			help='Verbose output')
-    (options, args) = parser.parse_args()
-
-    if options.verbose:
-        verbose_mode = True
-
-    if not options.ssh_host:
-        print("No pfSense host provided.")
-        sys.exit(1)
-
-    if not options.ssh_user:
-        print("No SSH user provided.")
-        sys.exit(1)
-
-    if not options.key_file:
-        print("No SSH key provided.")
-        sys.exit(1)
-
-    if options.key_passphrase not in locals():
-        options.key_passphrase = None
-
-    log("Connecting to ssh://%s@%s" % (options.ssh_user, options.ssh_host))
+    ''' Process a firewall configuration
+    '''
+    
+    log("Connecting to ssh://%s@%s" % (user, host))
     try:
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(options.ssh_host, username=options.ssh_user, pkey=load_ssh_key(options.key_file, options.key_passphrase))
+        ssh.connect(host, username=user, pkey=load_ssh_key(key, passphrase))
     except:
-        print("Cannot connect to %s@%s." % (options.ssh_user, options.ssh_host))
-        sys.exit(1)
+        print("Cannot connect to %s@%s." % (user, host))
+        return(1)
         
     temp_file = tempfile.mktemp()
     log("Dumping configuration to %s" % temp_file)
@@ -207,7 +181,7 @@ def main(argv):
     except:
         print("Cannot download configuration XML file.")
         ssh.close()
-        sys.exit(1)
+        return(1)
     ssh.close()
 
     log("Processing %s" % temp_file)
@@ -232,8 +206,8 @@ def main(argv):
     sha256_hash = hash_object.hexdigest()
 
     rc = 0
-    log("Writing encrypted configuration to %s.conf" % options.ssh_host)
-    if xor(options.ssh_host + ".conf", data, hostname) == True:
+    log("Writing encrypted configuration to %s.conf" % host)
+    if xor(host + ".conf", data, hostname) == True:
         log("Comparing configurations: Old SHA256: %s, New SHA256: %s" % (sha256_hash, sha256_hash_new))
         if sha256_hash != sha256_hash_new:
             xml_dict = data_dict;
@@ -268,6 +242,52 @@ def main(argv):
         rc = 1
 
     os.unlink(temp_file)
+    return(rc)
+
+def main(argv):
+
+    global verbose_mode
+    global changes_list
+
+    parser = OptionParser(usage="usage: %prog [options]", version="%prog 1.0")
+    parser.add_option('-u', '--user', dest='ssh_user', type='string', \
+    		help='SSH user')
+    parser.add_option('-H', '--host', dest='ssh_host', type='string', \
+    		help='Firewall FQDN or IP address (multiple hosts separated with commas)')
+    parser.add_option('-k', '--key', dest='key_file', type='string', \
+    		help='SSH RSA private key')
+    parser.add_option('-p', '--passphrase', dest='key_passphrase', type='string', \
+    		help='SSH key passphrase')
+    parser.add_option('-j', '--json', action='store_true', dest='json_output', \
+			help='Generate JSON logfile')
+    parser.add_option('-l', '--log', dest='log_file', type='string', \
+            help='Local log file (default: stdout)')
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose', \
+			help='Verbose output')
+    (options, args) = parser.parse_args()
+
+    if options.verbose:
+        verbose_mode = True
+
+    if not options.ssh_host:
+        print("No pfSense host provided.")
+        sys.exit(1)
+
+    if not options.ssh_user:
+        print("No SSH user provided.")
+        sys.exit(1)
+
+    if not options.key_file:
+        print("No SSH key provided.")
+        sys.exit(1)
+
+    if options.key_passphrase not in locals():
+        options.key_passphrase = None
+
+    rc = 0
+    for host in options.ssh_host.split(','):
+        rc = process_firewall(host, options.ssh_user, options.key_file, options.key_passphrase)
+
     sys.exit(rc)
 
 if __name__ == '__main__':
